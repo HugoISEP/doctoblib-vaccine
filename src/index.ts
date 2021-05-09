@@ -22,11 +22,10 @@ const findAppointment = async (page: Page) => {
     }
     const random = Math.floor(Math.random() * slotsAvailable.length);
     await slotsAvailable[random].click();
+    await page.waitForNavigation();
 };
 
 const completeAppointment = async (page: Page) => {
-
-    await page.waitForTimeout(2000)
 
     const selectBookingSpeciality = await page.evaluate(() => {
         return !!document.querySelector("#booking_motive_category")
@@ -135,17 +134,15 @@ const connexion = async (page: Page) => {
 }
 
 const acceptRules = async (page: Page) => {
-    const button1 = await page.waitForSelector(".dl-button-check-inner", {timeout: 1500});
-    await button1?.click();
     await page.waitForTimeout(1000);
-    const button2 = await page.waitForSelector("button.dl-button-check-inner:not([disabled])", {timeout: 1500});
-    await button2?.click();
-    await page.waitForTimeout(1000);
-    const button3 = await page.waitForSelector("button.dl-button-check-inner:not([disabled])", {timeout: 1500});
-    await button3?.click();
-    await page.waitForTimeout(1000);
-    const button4 = await page.waitForSelector("button.dl-button-check-inner:not([disabled])", {timeout: 1500});
-    await button4?.click();
+    while (await page.evaluate(() => {
+        return !!document.querySelector("button.dl-button-check-inner:not([disabled])")
+    })) {
+        const button = await page.waitForSelector("button.dl-button-check-inner:not([disabled])", {timeout: 1500});
+        await button?.click();
+        await page.waitForTimeout(1000);
+    }
+
     const finalButton = await page.waitForSelector(".booking-motive-rule-button", {timeout: 1000});
     finalButton?.click();
     return true;
@@ -170,10 +167,14 @@ const acceptRules = async (page: Page) => {
             complete = false;
         }
     }
-    complete = await acceptRules(page);
-    console.log("END acceptRules");
-    await connexion(page);
-    console.log("FINISH");
+    try{
+        complete = await acceptRules(page);
+        console.log("END acceptRules");
+        await connexion(page);
+        console.log("FINISH");
+    } catch (e){
+
+    }
 
 
 })();
