@@ -28,22 +28,31 @@ const findAppointment = async (page: Page) => {
 const completeAppointment = async (page: Page) => {
 
     const selectBookingSpeciality = await page.evaluate(() => {
-        return !!document.querySelector("#booking_motive_category")
-    })
+        return !!document.querySelector("#booking_speciality")
+    });
     if (selectBookingSpeciality){
         await page.select("select#booking_speciality", "5494");
+    }
+
+    const visitMotiveButton = await page.evaluate(() => {
+        return !!document.querySelector("[for=\"all_visit_motives-1\"]")
+    });
+    if (visitMotiveButton){
+        await page.click("[for=\"all_visit_motives-1\"]");
     }
 
     const selectBookingMotiveCategory = await page.evaluate(() => {
         return !!document.querySelector("#booking_motive_category")
     })
     if (selectBookingMotiveCategory){
-        console.log("selectBookingMotiveCategory selected")
-        let text = await page.select("select#booking_motive_category", "patients-de-moins-50-ans-5494");
-        if (text[0] === ""){
-            text = await page.select("select#booking_motive_category", "de-18-a-54-ans-avec-comorbidite-5494");
+        let optionSelected = await page.select("select#booking_motive_category", "patients-de-moins-50-ans-5494");
+        if (optionSelected[0] === ""){
+            optionSelected = await page.select("select#booking_motive_category", "de-18-a-54-ans-avec-comorbidite-5494");
         }
-        console.log("selectBookingMotiveCategory", text)
+        if (optionSelected[0] === ""){
+            optionSelected = await page.select("select#booking_motive_category", "vaccination-pfizer-5494");
+        }
+        console.log("selectBookingMotiveCategory: " + optionSelected[0])
     }
 
     await page.waitForSelector("#booking_motive", {timeout: 500});
@@ -53,19 +62,21 @@ const completeAppointment = async (page: Page) => {
     })
 
     if (selectBookingMotive){
-        let isSelected = await page.select("select#booking_motive", "1re injection vaccin COVID-19 (Pfizer-BioNTech)-5494");
-        if (isSelected[0] === ""){
-            isSelected = await page.select("select#booking_motive", "1re injection vaccin COVID-19 (Moderna)-5494");
+        let optionSelected = await page.select("select#booking_motive", "1re injection vaccin COVID-19 (Pfizer-BioNTech)-5494");
+        if (optionSelected[0] === ""){
+            optionSelected = await page.select("select#booking_motive", "1re injection vaccin COVID-19 (Moderna)-5494");
         }
-        if (isSelected[0] === ""){
-            isSelected = await page.select("select#booking_motive", "1re injection vaccin COVID-19 (Pfizer-BioNTech)-5494-tout-public-5494");
+        if (optionSelected[0] === ""){
+            optionSelected = await page.select("select#booking_motive", "1re injection vaccin COVID-19 (Pfizer-BioNTech)-5494-tout-public-5494");
         }
-        console.log("selectBookingMotive", isSelected)
+        if (optionSelected[0] === ""){
+            optionSelected = await page.select("select#booking_motive", "1re injection vaccin COVID-19 (Pfizer-BioNTech)-5494-grand-public-5494");
+        }
+        console.log("selectBookingMotive: " + optionSelected)
     }
 
     await page.waitForSelector(".availabilities-slots .Tappable-inactive", {timeout: 3000})
-        .then(() => console.log(".Tappable-inactive"))
-        .catch(e => console.log("ERROR Tappable-inactive", e))
+        .catch(() => {throw "No slot found"})
 
     const availableDays =  await page.$$(".availabilities-day")
     for (const availableDay of availableDays){
@@ -121,14 +132,20 @@ const findSecondAppointment = async (page: Page) => {
     }
 };
 
+const checkCanContinue = async (page: Page) => {
+    await page.waitForSelector(".availabilities-slots .Tappable-inactive", {timeout: 1500})
+        .catch(e => {
+            throw "Modal accepting rules is not open";
+        });
+}
+
 const connexion = async (page: Page) => {
     let connexionButton: ElementHandle;
     await page.waitForSelector(".dl-button-DEPRECATED_yellow", {timeout: 1500})
         .then(res => res?.click())
         .catch((e) => console.log("pas grave"));
-    //await connexionButton?.click();
     await page.waitForTimeout(1000);
-    await page.type('#password', password);
+    await page.type('#username', username);
     await page.keyboard.press('Enter');
     return true;
 }
@@ -162,8 +179,10 @@ const acceptRules = async (page: Page) => {
             console.log("END completeAppointment");
             complete = await findSecondAppointment(page);
             console.log("END findSecondAppointment");
+            await checkCanContinue(page);
             //complete = await connexion(page);
         } catch (e) {
+            console.log("ERROR: " + e);
             complete = false;
         }
     }
