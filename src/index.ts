@@ -1,6 +1,6 @@
 import puppeteer, {ElementHandle, Page} from 'puppeteer';
 
-const username = "hugo.chemillier@gmail.com"
+const username = "venard.paul@gmail.com"
 const password = "password"
 const URL_WITH_CATEGORY = "https://www.doctolib.fr/vaccination-covid-19/paris?availabilities=3&ref_visit_motive_ids%5B%5D=6970&ref_visit_motive_ids%5B%5D=7005";
 const DAY_TO_VACCINE = "lundi";
@@ -138,17 +138,6 @@ const checkCanContinue = async (page: Page) => {
         .catch(e => {
             throw "Modal accepting rules is not open";
         });
-}
-
-const connexion = async (page: Page) => {
-    let connexionButton: ElementHandle;
-    await page.waitForSelector(".dl-button-DEPRECATED_yellow", {timeout: 1500})
-        .then(res => res?.click())
-        .catch((e) => console.debug("pas grave"));
-    await page.waitForTimeout(1000);
-    await page.type('#username', username);
-    await page.keyboard.press('Enter');
-    return true;
 }
 
 const acceptRules = async (page: Page) => {
