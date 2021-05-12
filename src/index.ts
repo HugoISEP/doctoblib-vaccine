@@ -4,6 +4,7 @@ const username = "hugo.chemillier@gmail.com"
 const password = "password"
 const URL_WITH_CATEGORY = "https://www.doctolib.fr/vaccination-covid-19/paris?availabilities=3&ref_visit_motive_ids%5B%5D=6970&ref_visit_motive_ids%5B%5D=7005";
 const DAY_TO_VACCINE = "lundi";
+const URL_LOGIN = "https://www.doctolib.fr/sessions/new"
 
 const findAppointment = async (page: Page) => {
     const slotsAvailable: ElementHandle[] = [];
@@ -165,12 +166,38 @@ const acceptRules = async (page: Page) => {
     return true;
 };
 
-(async () => {
 
+const logUser = async (page: Page) => {
+    await page.goto(URL_LOGIN, {waitUntil: "networkidle0"});
+    await page.waitForTimeout(1000);
+
+    await page.type("#username", username);
+    
+    /*
+        On this page there are 2 input password, however only the first one is the correct one,
+        but we can only use it if we get both input and then select the correct one (which is in the second place in array weirdly)
+    */
+    const input_password = await page.$$("#password");
+    await input_password[1]?.type(password)
+
+    await page.click(".dl-button-DEPRECATED_yellow")
+    return page.url() === "https://www.doctolib.fr/account/appointments";
+}
+
+
+// Starting point
+(async () => {
     let complete = false;
+
+    /* Launch Puppeteer */
     const browser = await puppeteer.launch({headless: false});
     const page = await browser.newPage()
 
+    /* First connect to Doctolib via user account */
+    if(await logUser(page))
+        console.log("Login successful");
+
+    /* Keep searching an available appointment while none as been found */
     while (!complete){
         try{
             await findAppointment(page);
@@ -180,21 +207,18 @@ const acceptRules = async (page: Page) => {
             complete = await findSecondAppointment(page);
             console.log("END findSecondAppointment");
             await checkCanContinue(page);
-            //complete = await connexion(page);
         } catch (e) {
             console.log("ERROR: " + e);
             complete = false;
         }
     }
+
+    /* Accept all rules asked by organisation */
     try{
-        complete = await acceptRules(page);
+        await acceptRules(page);
         console.log("END acceptRules");
-        await connexion(page);
         console.log("FINISH");
     } catch (e){
-
     }
-
-
 })();
 
